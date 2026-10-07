@@ -33,8 +33,14 @@ class Cache:
             # The sidecar is on localhost; anything slower than this is an outage, not latency.
             socket_connect_timeout=0.5,
             socket_timeout=0.5,
-            # Redis closes idle connections (--timeout 10); one transparent retry re-establishes
-            # them. A real outage exhausts the retries fast and surfaces as BYPASS.
+            # Redis closes idle connections (--timeout 10). Two defences, because a pooled
+            # connection the server already closed otherwise costs the first request after a
+            # quiet spell a spurious BYPASS (seen 2026-10-07 after ~1h idle):
+            #   - health_check_interval: PING any connection idle > 5s before reusing it, and
+            #     reconnect if the PING fails (5 < 10, so stale sockets are caught first);
+            #   - retry: one transparent re-run on a connection error.
+            # A real outage exhausts both fast and surfaces as BYPASS, which is the point.
+            health_check_interval=5,
             retry=Retry(ExponentialBackoff(cap=0.1, base=0.01), retries=2),
             retry_on_error=[RedisConnectionError, RedisTimeoutError],
         )

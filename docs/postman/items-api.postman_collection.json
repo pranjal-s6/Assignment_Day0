@@ -1,0 +1,52 @@
+{
+  "info": {
+    "name": "items-api on Nomad + Consul Connect",
+    "description": "Demo walkthrough. Set base_url to http://<WSL IP>:8000 (inside Ubuntu: hostname -I | awk '{print $1}'). Watch the X-Cache and X-Instance response headers.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://172.25.223.28:8000" },
+    { "key": "item_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "1. Health (edge -> mesh -> api)",
+      "request": { "method": "GET", "url": "{{base_url}}/health" }
+    },
+    {
+      "name": "2. Ready (api -> redis + postgres through sidecars)",
+      "request": { "method": "GET", "url": "{{base_url}}/ready" }
+    },
+    {
+      "name": "3. Create item (writes to postgres)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const b = pm.response.json(); pm.collectionVariables.set('item_id', b.id);",
+        "pm.test('201/200 with id', () => pm.expect(b.id).to.be.a('number'));"
+      ] } }],
+      "request": { "method": "POST", "url": { "raw": "{{base_url}}/items?name=demo", "host": ["{{base_url}}"], "path": ["items"], "query": [{ "key": "name", "value": "demo" }] } }
+    },
+    {
+      "name": "4. Read item - 1st time: X-Cache MISS, source db",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('X-Cache present', () => pm.expect(pm.response.headers.get('X-Cache')).to.be.oneOf(['MISS','HIT']));"
+      ] } }],
+      "request": { "method": "GET", "url": "{{base_url}}/items/{{item_id}}" }
+    },
+    {
+      "name": "5. Read item - 2nd time: X-Cache HIT, source cache, other X-Instance",
+      "request": { "method": "GET", "url": "{{base_url}}/items/{{item_id}}" }
+    },
+    {
+      "name": "6. Update item: X-Cache INVALIDATED",
+      "request": { "method": "PUT", "url": { "raw": "{{base_url}}/items/{{item_id}}?name=demo-v2", "host": ["{{base_url}}"], "path": ["items", "{{item_id}}"], "query": [{ "key": "name", "value": "demo-v2" }] } }
+    },
+    {
+      "name": "7. Read item after update: MISS with new name",
+      "request": { "method": "GET", "url": "{{base_url}}/items/{{item_id}}" }
+    },
+    {
+      "name": "8. During `make chaos` (api->redis denied): 200, X-Cache BYPASS",
+      "request": { "method": "GET", "url": "{{base_url}}/items/{{item_id}}" }
+    }
+  ]
+}

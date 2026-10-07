@@ -114,6 +114,12 @@ x-cache: INVALIDATED
 `make verify` runs this sequence and finishes with ten reads whose `X-Instance` values
 alternate between the two API allocations.
 
+The same walkthrough as a Postman collection: [docs/postman/items-api.postman_collection.json](docs/postman/items-api.postman_collection.json).
+From Windows, Postman must use the WSL VM's address rather than `localhost`, because
+port 8000 is a CNI port-map rule and not a listening socket, which WSL's localhost relay
+does not forward. Get the address inside Ubuntu with `hostname -I | awk '{print $1}'` and
+set the collection's `base_url` variable to `http://<that address>:8000`.
+
 Then look at:
 
 - Consul UI → Services: `api`, `edge`, `postgres`, `redis`, each with a `-sidecar-proxy`
