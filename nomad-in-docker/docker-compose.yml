@@ -1,0 +1,19 @@
+# Nomad dev agent (server + client). Image tag verified on Docker Hub 2026-10-06.
+services:
+  nomad:
+    image: hashicorp/nomad:2.0.7
+    container_name: nomad
+    command: agent -dev -bind=0.0.0.0 -network-interface=eth0
+    privileged: true
+    cgroup: host # Nomad client needs to manage cgroups v2 directly
+    environment:
+      NOMAD_SKIP_DOCKER_IMAGE_WARN: "1"
+    ports:
+      - "4646:4646" # HTTP API + UI
+      - "4647:4647" # RPC
+      - "4648:4648" # Serf
+    volumes:
+      # lets Nomad's docker driver launch job containers on the host daemon
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    restart: unless-stopped

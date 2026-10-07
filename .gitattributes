@@ -1,0 +1,3 @@
+# The repo is edited on Windows but executed inside WSL2: force LF so bash/HCL/Dockerfiles never see CRLF.
+* text=auto eol=lf
+*.png binary

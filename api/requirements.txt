@@ -1,0 +1,5 @@
+# Pinned to the latest releases on PyPI as of 2026-10-07.
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+asyncpg==0.32.0
+redis==8.1.0
